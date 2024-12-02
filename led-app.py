@@ -24,9 +24,9 @@ def volume_to_rgb(volume):
 		g = 1 - (degree / 120 - 2)
 		r = degree / 120 - 2
 
-	r = round(float(np.clip(r * 255, 0, 255)), 2)
-	g = round(float(np.clip(g * 255, 0, 255)), 2)
-	b = round(float(np.clip(b * 255, 0, 255)), 2)
+	r = round(float(np.clip(r * 100, 0, 100)), 2)
+	g = round(float(np.clip(g * 100, 0, 100)), 2)
+	b = round(float(np.clip(b * 100, 0, 100)), 2)
 
 	return r, g, b
 
@@ -46,10 +46,6 @@ def getAudio(timer):
 
 	with sd.InputStream(device="Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO), Windows DirectSound", channels=8, callback=audio_callback):
 		sd.sleep(86400000)
-
-def playAudio():
-	timer.enter(0, 1, getAudio, (timer, ))
-	timer.run()
 
 def setPlay(bool):
 	global play
@@ -76,11 +72,14 @@ def on_quit_callback(systray):
 	os._exit(1)
     
 menu_options = (("Music Mode", None, (("On", None, on), ("Off", None, off),)),)
-systray = SysTrayIcon("icon.ico", "Example tray icon", menu_options, on_quit=on_quit_callback)
+systray = SysTrayIcon("icon.ico", "LED Controller", menu_options, on_quit=on_quit_callback)
 systray.start()
 
 timer = sched.scheduler(time.time, time.sleep)
 play = open("play.txt", "r").read()
 
+timer.enter(0, 1, getAudio, (timer, ))
+timer.run()
+
 if (play == "True"):
-	playAudio()
+	pass  #Connect to bluetooth. Disconnect from bluetooth on quit. Else just send commands for on/off switch
