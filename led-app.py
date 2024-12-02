@@ -1,11 +1,12 @@
 import sched, time
 import numpy as np
-import struct
 import math
 import sounddevice as sd
+from infi.systray import SysTrayIcon
+import os
 
 def volume_to_rgb(volume):
-	degree = volume * 1.8  #200 * 1.8 = 360
+	degree = volume * 1.8  # 200 * 1.8 = 360
 
 	arc = math.floor(degree / 120)
 
@@ -14,8 +15,8 @@ def volume_to_rgb(volume):
 	b = 0
 
 	if (arc == 0):
-		r = 1 - (degree / 120) - 0.1
-		b = degree / 120 + 0.1
+		r = (1 - (degree / 120)) * 0.8
+		b = (degree / 120) * 0.8 + 0.2
 	elif (arc == 1):
 		b = 1 - (degree / 120 - 1)
 		g = degree / 120 - 1
@@ -30,18 +31,56 @@ def volume_to_rgb(volume):
 	return r, g, b
 
 def audio_callback(indata, frames, time, status):
+	global play
+
+	if (play == "False"):
+		return
+
 	volume_norm = np.linalg.norm(indata) * 10
 	volume = np.clip(int(volume_norm), 0, 200)
 
 	print(volume, volume_to_rgb(volume))
 	
 def getAudio(timer):
-	
+	timer.enter(86400, 1, getAudio, (timer, ))
+
 	with sd.InputStream(device="Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO), Windows DirectSound", channels=8, callback=audio_callback):
 		sd.sleep(86400000)
 
-	timer.enter(86400, 1, getAudio, (timer, ))
+def playAudio():
+	timer.enter(0, 1, getAudio, (timer, ))
+	timer.run()
+
+def setPlay(bool):
+	global play
+
+	play = bool
+
+	f = open("play.txt", "w")
+	f.write(play)
+	f.close()
+
+def on(systray):
+	if (play == "True"):
+		return
+	
+	setPlay("True")
+
+def off(systray):
+	if (play == "False"):
+		return
+
+	setPlay("False")
+
+def on_quit_callback(systray):
+	os._exit(1)
+    
+menu_options = (("Music Mode", None, (("On", None, on), ("Off", None, off),)),)
+systray = SysTrayIcon("icon.ico", "Example tray icon", menu_options, on_quit=on_quit_callback)
+systray.start()
 
 timer = sched.scheduler(time.time, time.sleep)
-timer.enter(0, 1, getAudio, (timer, ))
-timer.run()
+play = open("play.txt", "r").read()
+
+if (play == "True"):
+	playAudio()
