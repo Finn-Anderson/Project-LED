@@ -1,25 +1,35 @@
-'''from rgbled import rgbled
-from bleak import BleakClient
-from bleak import BleakScanner
-import asyncio
+import socket
+#import board
+#import neopixel
 
-async def main():
-	devices = await BleakScanner.discover()
-	for d in devices:
-		print(d)
+DEFAULT_RGB = "255 126 0"
+#pixels = neopixel.NeoPixel(board.D18, 55, brightness=1) # 55 is number of pixels (NEEDS TO BE CHANGED)
 
-asyncio.run(main())
+def setRGB(data):
+	rgb = data.split()
 
-DEFAULT_RGB = [255, 126, 0]
-led = rgbled(DEFAULT_RGB[0], DEFAULT_RGB[1], DEFAULT_RGB[2])
+	print(rgb)
 
-def setRGB(r, g, b):
-	led.changeto(r, g, b, 0.1)
+	#pixels.fill((rgb[0], rgb[1], rgb[2]))
 
-def data_received(data):
-	setRGB(data[0], data[1], data[2])
+setRGB(DEFAULT_RGB)
 
-def client_disconnected():
-	setRGB(DEFAULT_RGB[0], DEFAULT_RGB[1], DEFAULT_RGB[2])
-	
-server = BluetoothServer(data_received, auto_start = True, when_client_disconnects = client_disconnected)'''
+s = socket.socket()
+s.bind(("0.0.0.0", 5000))
+s.listen()
+
+while True:
+	c,a = s.accept()
+
+	with c:
+		while True:
+			data = c.recv(1024).decode("ascii")
+			
+			if (data == ""):
+				break
+
+			default = False
+
+			setRGB(data)
+
+	setRGB(DEFAULT_RGB)

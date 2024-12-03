@@ -4,6 +4,7 @@ import math
 import sounddevice as sd
 from infi.systray import SysTrayIcon
 import os
+import socket
 
 def volume_to_rgb(volume):
 	degree = volume * 1.8  # 200 * 1.8 = 360
@@ -24,22 +25,29 @@ def volume_to_rgb(volume):
 		g = 1 - (degree / 120 - 2)
 		r = degree / 120 - 2
 
-	r = round(float(np.clip(r * 100, 0, 100)), 2)
-	g = round(float(np.clip(g * 100, 0, 100)), 2)
-	b = round(float(np.clip(b * 100, 0, 100)), 2)
+	r = round(float(np.clip(r * 255, 0, 255)), 2)
+	g = round(float(np.clip(g * 255, 0, 255)), 2)
+	b = round(float(np.clip(b * 255, 0, 255)), 2)
 
 	return r, g, b
 
 def audio_callback(indata, frames, time, status):
 	global play
+	global passTime
 
-	if (play == "False"):
+	if (play == "False" or passTime > time.currentTime):
 		return
 
 	volume_norm = np.linalg.norm(indata) * 10
 	volume = np.clip(int(volume_norm), 0, 200)
 
-	print(volume, volume_to_rgb(volume))
+	volTuple = volume_to_rgb(volume)
+
+	volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
+
+	passTime = time.currentTime + 0.1
+
+	s.send(volStr.encode("ascii"))
 	
 def getAudio(timer):
 	timer.enter(86400, 1, getAudio, (timer, ))
@@ -57,8 +65,13 @@ def setPlay(bool):
 	f.close()
 
 def on(systray):
+	global s
+
 	if (play == "True"):
 		return
+
+	s = socket.socket()
+	s.connect(("127.0.0.1", 5000))
 	
 	setPlay("True")
 
@@ -68,7 +81,11 @@ def off(systray):
 
 	setPlay("False")
 
+	s.close()
+
 def on_quit_callback(systray):
+	s.close()
+
 	os._exit(1)
     
 menu_options = (("Music Mode", None, (("On", None, on), ("Off", None, off),)),)
@@ -78,8 +95,12 @@ systray.start()
 timer = sched.scheduler(time.time, time.sleep)
 play = open("play.txt", "r").read()
 
-timer.enter(0, 1, getAudio, (timer, ))
-timer.run()
+s = socket.socket()
+
+passTime = -1
 
 if (play == "True"):
-	pass  #Connect to bluetooth. Disconnect from bluetooth on quit. Else just send commands for on/off switch
+	s.connect(("127.0.0.1", 5000))
+
+timer.enter(0, 1, getAudio, (timer, ))
+timer.run()
