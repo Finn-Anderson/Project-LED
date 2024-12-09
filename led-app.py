@@ -57,6 +57,7 @@ def getAudio(timer):
 
 def setPlay(bool):
 	global play
+	global s
 
 	play = bool
 
@@ -65,25 +66,24 @@ def setPlay(bool):
 	f.close()
 
 def on(systray):
-	global s
-
 	if (play == "True"):
 		return
-
-	s = socket.socket()
-	s.connect(("127.0.0.1", 5000))
 	
 	setPlay("True")
 
 def off(systray):
+	global s
+
 	if (play == "False"):
 		return
 
 	setPlay("False")
 
-	s.close()
+	s.send("255 127 0".encode("ascii"))
 
 def on_quit_callback(systray):
+	global s
+
 	s.close()
 
 	os._exit(1)
@@ -96,11 +96,10 @@ timer = sched.scheduler(time.time, time.sleep)
 play = open("play.txt", "r").read()
 
 s = socket.socket()
+s.connect(("127.0.0.1", 5000))
+s.send("255 127 0".encode("ascii"))
 
 passTime = -1
-
-if (play == "True"):
-	s.connect(("127.0.0.1", 5000))
 
 timer.enter(0, 1, getAudio, (timer, ))
 timer.run()

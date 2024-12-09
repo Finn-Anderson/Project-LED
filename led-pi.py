@@ -2,11 +2,15 @@ import socket
 #import board
 #import neopixel
 
-DEFAULT_RGB = "255 126 0"
+DEFAULT_RGB = "0 0 0"
+PREVIOUS_RGB = DEFAULT_RGB
 #pixels = neopixel.NeoPixel(board.D18, 55, brightness=1) # 55 is number of pixels (NEEDS TO BE CHANGED)
 
 def setRGB(data):
 	rgb = data.split()
+
+	if (PREVIOUS_RGB == rgb):
+		return
 
 	print(rgb)
 
@@ -23,13 +27,14 @@ while True:
 
 	with c:
 		while True:
-			data = c.recv(1024).decode("ascii")
-			
-			if (data == ""):
+			try:
+				data = c.recv(1024).decode("ascii")
+				
+				if (data == ""):
+					break
+
+				setRGB(data)
+			except:
 				break
-
-			default = False
-
-			setRGB(data)
 
 	setRGB(DEFAULT_RGB)
