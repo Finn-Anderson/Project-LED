@@ -17,10 +17,10 @@ def setRGB(data):
 	global TARGET_RGB
 	global COUNT
 	
+	COUNT = 0
+	
 	if (TARGET_RGB == data):
 		return
-	
-	COUNT = 0
 		
 	print(data)
 	
@@ -42,12 +42,12 @@ async def setRGBFill():
 	COUNT = 0
 	
 	while True:
-		if (CURRENT_RGB == TARGET_RGB or COUNT >= 3):
-			await asyncio.sleep(2)
-			
+		await asyncio.sleep(0.01)
+		
+		if (CURRENT_RGB == TARGET_RGB or COUNT >= 500):
 			COUNT = COUNT + 1
 			
-			if (COUNT == 3):
+			if (COUNT == 500):
 				setRGB(DEFAULT_RGB)
 				
 				CURRENT_RGB = DEFAULT_RGB
@@ -69,8 +69,6 @@ async def setRGBFill():
 		CURRENT_RGB = "{} {} {}".format(r, g, b)
 
 		pixels.fill((r, g, b)))
-		
-		await asyncio.sleep(0.01)
 		
 async def server():
 	s = socket.socket(type=socket.SOCK_DGRAM)
