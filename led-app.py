@@ -6,58 +6,67 @@ from infi.systray import SysTrayIcon
 import os
 import socket
 
-def volume_to_rgb(volume):
-	degree = volume * 1.8  # 200 * 1.8 = 360
+COUNT = 0
 
-	arc = math.floor(degree / 120)
+def volume_to_rgb(volume):
+	degree = volume
+
+	arc = math.floor(degree / 180)
 
 	r = 0
 	g = 0
 	b = 0
 
 	if (arc == 0):
-		r = (1 - (degree / 120)) * 0.8
-		b = (degree / 120) * 0.8 + 0.2
-	elif (arc == 1):
-		b = 1 - (degree / 120 - 1)
-		g = degree / 120 - 1
+		b = (1 - (degree / 180))
+		g = (degree / 180)
 	else:
-		g = 1 - (degree / 120 - 2)
-		r = degree / 120 - 2
+		g = 1 - (degree / 180 - 1)
+		r = degree / 180 - 1
 
 	r = round(float(np.clip(r * 255, 0, 255)), 2)
 	g = round(float(np.clip(g * 255, 0, 255)), 2)
 	b = round(float(np.clip(b * 255, 0, 255)), 2)
 
-	return r, g, b
+	return int(r), int(g), int(b)
 
 def audio_callback(indata, frames, time, status):
 	global play
 	global passTime
+	global s
+	global SERVER_IP
+	global COUNT
 
 	if (play == "False" or passTime > time.currentTime):
 		return
 
-	volume_norm = np.linalg.norm(indata) * 10
-	volume = np.clip(int(volume_norm), 0, 200)
+	volume_norm = np.linalg.norm(indata) ** 2.5
+	volume = np.clip(int(volume_norm), 0, 360)
 
 	volTuple = volume_to_rgb(volume)
 
 	volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
 
-	passTime = time.currentTime + 0.1
+	passTime = time.currentTime + 0.2
 
-	s.send(volStr.encode("ascii"))
+	if (volume == 0):
+		COUNT = COUNT + 1	
+	else:
+		COUNT = 0
+
+	if (COUNT >= 20):
+		return
+
+	s.sendto(volStr.encode("ascii"), SERVER_IP)
 	
 def getAudio(timer):
 	timer.enter(86400, 1, getAudio, (timer, ))
 
-	with sd.InputStream(device="Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO), Windows DirectSound", channels=8, callback=audio_callback):
+	with sd.InputStream(device="Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO), Windows WASAPI", channels=2, callback=audio_callback):
 		sd.sleep(86400000)
 
 def setPlay(bool):
 	global play
-	global s
 
 	play = bool
 
@@ -72,18 +81,16 @@ def on(systray):
 	setPlay("True")
 
 def off(systray):
-	global s
+	global SERVER_IP
 
 	if (play == "False"):
 		return
 
 	setPlay("False")
 
-	s.send("255 127 0".encode("ascii"))
+	s.sendto("0 0 255".encode("ascii"), SERVER_IP)
 
 def on_quit_callback(systray):
-	global s
-
 	s.close()
 
 	os._exit(1)
@@ -95,9 +102,10 @@ systray.start()
 timer = sched.scheduler(time.time, time.sleep)
 play = open("play.txt", "r").read()
 
-s = socket.socket()
-s.connect(("127.0.0.1", 5000))
-s.send("255 127 0".encode("ascii"))
+SERVER_IP = ("192.168.50.9", 5000)
+
+s = socket.socket(type=socket.SOCK_DGRAM)
+s.sendto("0 0 255".encode("ascii"), SERVER_IP)
 
 passTime = -1
 

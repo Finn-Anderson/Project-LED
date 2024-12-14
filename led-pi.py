@@ -1,40 +1,101 @@
 import socket
-#import board
-#import neopixel
+import board
+import neopixel
+import asyncio
+import numpy as np
+import math
 
 DEFAULT_RGB = "0 0 0"
 PREVIOUS_RGB = DEFAULT_RGB
-#pixels = neopixel.NeoPixel(board.D18, 55, brightness=1) # 55 is number of pixels (NEEDS TO BE CHANGED)
+CURRENT_RGB = DEFAULT_RGB
+TARGET_RGB = DEFAULT_RGB
+pixels = neopixel.NeoPixel(board.D18, 300, brightness = 0.5) # middle number is the number of pixels (NEEDS TO BE CHANGED)source 
+COUNT = 0
 
 def setRGB(data):
-	rgb = data.split()
-
-	if (PREVIOUS_RGB == rgb):
+	global PREVIOUS_RGB
+	global TARGET_RGB
+	global COUNT
+	
+	if (TARGET_RGB == data):
 		return
+	
+	COUNT = 0
+		
+	print(data)
+	
+	PREVIOUS_RGB = TARGET_RGB
+	TARGET_RGB = data
 
-	print(rgb)
-
-	#pixels.fill((rgb[0], rgb[1], rgb[2]))
-
-setRGB(DEFAULT_RGB)
-
-s = socket.socket()
-s.bind(("0.0.0.0", 5000))
-s.listen()
-
-while True:
-	c,a = s.accept()
-
-	with c:
-		while True:
-			try:
-				data = c.recv(1024).decode("ascii")
+def numRounded(value):
+	if (value < 0):
+		return math.floor(value)
+	else:
+		return math.ceil(value)
+	
+async def setRGBFill():
+	global PREVIOUS_RGB
+	global CURRENT_RGB
+	global TARGET_RGB
+	global COUNT
+	
+	COUNT = 0
+	
+	while True:
+		if (CURRENT_RGB == TARGET_RGB or COUNT >= 3):
+			await asyncio.sleep(2)
+			
+			COUNT = COUNT + 1
+			
+			if (COUNT == 3):
+				setRGB(DEFAULT_RGB)
 				
-				if (data == ""):
-					break
+				CURRENT_RGB = DEFAULT_RGB
 
+				pixels.fill((0, 0, 0))
+			
+			continue
+			
+		COUNT = 0
+			
+		targetData = TARGET_RGB.split()
+		currentData = CURRENT_RGB.split()
+		priorData = PREVIOUS_RGB.split()
+		
+		r = int(np.clip(int(currentData[0]) + numRounded((int(targetData[0]) - int(currentData[0]) / 6), 0, 255)
+		g = int(np.clip(int(currentData[1]) + numRounded((int(targetData[1]) - int(currentData[1]) / 6), 0, 255)
+		b = int(np.clip(int(currentData[2]) + numRounded((int(targetData[2]) - int(currentData[2]) / 6), 0, 255)
+		
+		CURRENT_RGB = "{} {} {}".format(r, g, b)
+
+		pixels.fill((r, g, b)))
+		
+		await asyncio.sleep(0.01)
+		
+async def server():
+	s = socket.socket(type=socket.SOCK_DGRAM)
+	s.bind(("0.0.0.0", 5000))
+	s.setblocking(0)
+	
+	loop = asyncio.get_event_loop()
+	
+	while True:
+		try:
+			data, _ = await loop.sock_recvfrom(s, 1024)
+			data = data.decode("ascii")
+		
+			if (data != ""):
 				setRGB(data)
-			except:
-				break
-
+		except Exception as e:
+			print(e)
+			setRGB(DEFAULT_RGB)
+	
+async def main():
 	setRGB(DEFAULT_RGB)
+	
+	async with asyncio.TaskGroup() as tg:
+		tg.create_task(setRGBFill())
+		tg.create_task(server())
+
+
+asyncio.run(main())
