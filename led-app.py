@@ -7,6 +7,7 @@ import os
 import socket
 
 COUNT = 0
+START_UP = 1
 
 def volume_to_rgb(volume):
 	degree = volume
@@ -36,6 +37,7 @@ def audio_callback(indata, frames, time, status):
 	global s
 	global SERVER_IP
 	global COUNT
+	global START_UP
 
 	if (play == "False" or passTime > time.currentTime):
 		return
@@ -54,8 +56,10 @@ def audio_callback(indata, frames, time, status):
 	else:
 		COUNT = 0
 
-	if (COUNT >= 20):
+	if (COUNT >= 20 or (volume == 0 and START_UP == 1)):
 		return
+	
+	START_UP = 0
 
 	s.sendto(volStr.encode("ascii"), SERVER_IP)
 	
@@ -88,8 +92,6 @@ def off(systray):
 
 	setPlay("False")
 
-	s.sendto("0 0 255".encode("ascii"), SERVER_IP)
-
 def on_quit_callback(systray):
 	s.close()
 
@@ -105,7 +107,6 @@ play = open("play.txt", "r").read()
 SERVER_IP = ("192.168.50.9", 5000)
 
 s = socket.socket(type=socket.SOCK_DGRAM)
-s.sendto("0 0 255".encode("ascii"), SERVER_IP)
 
 passTime = -1
 
