@@ -5,29 +5,17 @@ import sounddevice as sd
 from infi.systray import SysTrayIcon
 import os
 import socket
+import colorsys
 
 COUNT = 0
 START_UP = 1
 
 def volume_to_rgb(volume):
-	degree = volume
+	colour = colorsys.hsv_to_rgb(volume / 360, 1, 1)
 
-	arc = math.floor(degree / 180)
-
-	r = 0
-	g = 0
-	b = 0
-
-	if (arc == 0):
-		b = (1 - (degree / 180))
-		g = (degree / 180)
-	else:
-		g = 1 - (degree / 180 - 1)
-		r = degree / 180 - 1
-
-	r = round(float(np.clip(r * 255, 0, 255)), 2)
-	g = round(float(np.clip(g * 255, 0, 255)), 2)
-	b = round(float(np.clip(b * 255, 0, 255)), 2)
+	r = colour[2] * 255
+	g = colour[1] * 255
+	b = colour[0] * 255
 
 	return int(r), int(g), int(b)
 
@@ -43,7 +31,7 @@ def audio_callback(indata, frames, time, status):
 		return
 
 	volume_norm = np.linalg.norm(indata) ** 2.5
-	volume = np.clip(int(volume_norm), 0, 360)
+	volume = np.clip(int(volume_norm), 0, 300)
 
 	volTuple = volume_to_rgb(volume)
 
