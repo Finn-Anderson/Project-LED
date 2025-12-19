@@ -30,7 +30,7 @@ def audio_callback(indata, frames, time, status):
 	if (play == "False" or passTime > time.currentTime):
 		return
 
-	volume_norm = np.linalg.norm(indata) ** 2.5
+	volume_norm = np.linalg.norm(indata) ** 3
 	volume = np.clip(int(volume_norm), 0, 300)
 
 	volTuple = volume_to_rgb(volume)

@@ -9,7 +9,7 @@ DEFAULT_RGB = "0 0 0"
 PREVIOUS_RGB = DEFAULT_RGB
 CURRENT_RGB = DEFAULT_RGB
 TARGET_RGB = DEFAULT_RGB
-pixels = neopixel.NeoPixel(board.D18, 300, brightness = 0.5) # middle number is the number of pixels (NEEDS TO BE CHANGED)source 
+pixels = neopixel.NeoPixel(board.D18, 300, brightness = 0.5)
 COUNT = 0
 
 def setRGB(data):
@@ -21,8 +21,6 @@ def setRGB(data):
 	
 	if (TARGET_RGB == data):
 		return
-		
-	print(data)
 	
 	PREVIOUS_RGB = TARGET_RGB
 	TARGET_RGB = data
@@ -38,8 +36,6 @@ async def setRGBFill():
 	global CURRENT_RGB
 	global TARGET_RGB
 	global COUNT
-	
-	COUNT = 0
 	
 	while True:
 		await asyncio.sleep(0.01)
@@ -62,13 +58,13 @@ async def setRGBFill():
 		currentData = CURRENT_RGB.split()
 		priorData = PREVIOUS_RGB.split()
 		
-		r = int(np.clip(int(currentData[0]) + numRounded((int(targetData[0]) - int(currentData[0]) / 6), 0, 255)
-		g = int(np.clip(int(currentData[1]) + numRounded((int(targetData[1]) - int(currentData[1]) / 6), 0, 255)
-		b = int(np.clip(int(currentData[2]) + numRounded((int(targetData[2]) - int(currentData[2]) / 6), 0, 255)
+		r = int(np.clip(int(currentData[0]) + numRounded((int(targetData[0]) - int(priorData[0]) / 10), 0, 255)))
+		g = int(np.clip(int(currentData[1]) + numRounded((int(targetData[1]) - int(priorData[1]) / 10), 0, 255)))
+		b = int(np.clip(int(currentData[2]) + numRounded((int(targetData[2]) - int(priorData[2]) / 10), 0, 255)))
 		
 		CURRENT_RGB = "{} {} {}".format(r, g, b)
 
-		pixels.fill((r, g, b)))
+		pixels.fill((r, g, b))
 		
 async def server():
 	s = socket.socket(type=socket.SOCK_DGRAM)
@@ -76,6 +72,8 @@ async def server():
 	s.setblocking(0)
 	
 	loop = asyncio.get_event_loop()
+
+	print ("Connected")
 	
 	while True:
 		try:
@@ -86,7 +84,10 @@ async def server():
 				setRGB(data)
 		except Exception as e:
 			print(e)
+
 			setRGB(DEFAULT_RGB)
+
+			print ("Disconnected")
 	
 async def main():
 	setRGB(DEFAULT_RGB)
