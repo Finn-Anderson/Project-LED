@@ -7,9 +7,6 @@ import os
 import socket
 import colorsys
 
-COUNT = 0
-START_UP = 1
-
 def volume_to_rgb(volume):
 	colour = colorsys.hsv_to_rgb(volume / 360, 1, 1)
 
@@ -20,36 +17,31 @@ def volume_to_rgb(volume):
 	return int(r), int(g), int(b)
 
 def audio_callback(indata, frames, time, status):
-	global play
-	global passTime
-	global s
+	global PLAY
+	global PASSTIME
+	global SERVER
 	global SERVER_IP
 	global COUNT
-	global START_UP
 
-	if (play == "False" or passTime > time.currentTime):
+	if (PLAY == "False" or PASSTIME > time.currentTime):
 		return
 
-	volume_norm = np.linalg.norm(indata) ** 3
-	volume = np.clip(int(volume_norm), 0, 300)
-
-	volTuple = volume_to_rgb(volume)
-
-	volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
-
-	passTime = time.currentTime + 0.2
-
-	if (volume == 0):
-		COUNT = COUNT + 1	
-	else:
-		COUNT = 0
-
-	if (COUNT >= 20 or (volume == 0 and START_UP == 1)):
-		return
+	PASSTIME = time.currentTime + 0.2
 	
-	START_UP = 0
+	volStr = "228 112 37"
 
-	s.sendto(volStr.encode("ascii"), SERVER_IP)
+	if (PLAY == "True"):
+		volume_norm = np.linalg.norm(indata) ** 3
+		volume = np.clip(int(volume_norm), 0, 300)
+
+		volTuple = volume_to_rgb(volume)
+
+		volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
+
+		if (volume_norm == 0.0):
+			return
+
+	SERVER.sendto(volStr.encode("ascii"), SERVER_IP)
 	
 def getAudio(timer):
 	timer.enter(86400, 1, getAudio, (timer, ))
@@ -57,46 +49,57 @@ def getAudio(timer):
 	with sd.InputStream(device="Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO), Windows WASAPI", channels=2, callback=audio_callback):
 		sd.sleep(86400000)
 
-def setPlay(bool):
-	global play
+def setPlay(status):
+	global PLAY
 
-	play = bool
+	PLAY = status
 
 	f = open("play.txt", "w")
-	f.write(play)
+	f.write(PLAY)
 	f.close()
 
 def on(systray):
-	if (play == "True"):
+	global PLAY
+
+	if (PLAY == "True"):
 		return
 	
 	setPlay("True")
 
 def off(systray):
-	global SERVER_IP
+	global PLAY
 
-	if (play == "False"):
+	if (PLAY == "False"):
 		return
 
 	setPlay("False")
 
+def light(systray):
+	global PLAY
+
+	if (PLAY == "Light"):
+		return
+	
+	setPlay("Light")
+
 def on_quit_callback(systray):
-	s.close()
+	SERVER.close()
 
 	os._exit(1)
     
-menu_options = (("Music Mode", None, (("On", None, on), ("Off", None, off),)),)
+menu_options = (("Music Mode", None, (("On", None, on), ("Off", None, off), ("Light", None, light),)),)
 systray = SysTrayIcon("icon.ico", "LED Controller", menu_options, on_quit=on_quit_callback)
 systray.start()
 
 timer = sched.scheduler(time.time, time.sleep)
-play = open("play.txt", "r").read()
+PLAY = open("play.txt", "r").read()
 
 SERVER_IP = ("192.168.50.9", 5000)
 
-s = socket.socket(type=socket.SOCK_DGRAM)
+SERVER = socket.socket(type=socket.SOCK_DGRAM)
 
-passTime = -1
+PASSTIME = -1
+COUNT = 20
 
 timer.enter(0, 1, getAudio, (timer, ))
 timer.run()
