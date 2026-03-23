@@ -9,7 +9,6 @@ DEFAULT_RGB = "0 0 0"
 PREVIOUS_RGB = DEFAULT_RGB
 CURRENT_RGB = DEFAULT_RGB
 TARGET_RGB = DEFAULT_RGB
-pixels = neopixel.NeoPixel(board.D18, 300, brightness = 0.5)
 COUNT = 0
 
 def setRGB(data):
@@ -57,6 +56,7 @@ async def setRGBFill():
 		
 		CURRENT_RGB = temp_rgb
 
+		pixels = neopixel.NeoPixel(board.D18, 300, brightness = 0.5)
 		pixels.fill((r, g, b))
 
 def setCount():

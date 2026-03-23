@@ -41,7 +41,15 @@ def audio_callback(indata, frames, time, status):
 		if (volume_norm == 0.0):
 			return
 
-	SERVER.sendto(volStr.encode("ascii"), SERVER_IP)
+	SERVER = socket.socket(type=socket.SOCK_DGRAM)
+	SERVER.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+	try:
+		SERVER.connect(SERVER_IP)
+		SERVER.sendall(volStr.encode("ascii"))
+		SERVER.close()
+	except:
+		pass
 	
 def getAudio(timer):
 	timer.enter(86400, 1, getAudio, (timer, ))
@@ -83,6 +91,7 @@ def light(systray):
 	setPlay("Light")
 
 def on_quit_callback(systray):
+	SERVER.shutdown(socket.SHUT_RDWR)
 	SERVER.close()
 
 	os._exit(1)
@@ -94,9 +103,7 @@ systray.start()
 timer = sched.scheduler(time.time, time.sleep)
 PLAY = open("play.txt", "r").read()
 
-SERVER_IP = ("192.168.50.9", 5000)
-
-SERVER = socket.socket(type=socket.SOCK_DGRAM)
+SERVER_IP = ("192.168.0.3", 5000)
 
 PASSTIME = -1
 COUNT = 20
