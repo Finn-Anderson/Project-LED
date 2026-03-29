@@ -3,9 +3,11 @@ import numpy as np
 import math
 import sounddevice as sd
 from infi.systray import SysTrayIcon
+from functools import partial, Placeholder
 import os
 import socket
 import colorsys
+import ledface
 
 def volume_to_rgb(volume):
 	colour = colorsys.hsv_to_rgb(volume / 360, 1, 1)
@@ -21,16 +23,15 @@ def audio_callback(indata, frames, time, status):
 	global PASSTIME
 	global SERVER
 	global SERVER_IP
-	global COUNT
 
-	if (PLAY == "False" or PASSTIME > time.currentTime):
+	if (PLAY == "Off" or PASSTIME > time.currentTime):
 		return
 
 	PASSTIME = time.currentTime + 0.2
 	
 	volStr = "228 112 37"
 
-	if (PLAY == "True"):
+	if (PLAY == "On"):
 		volume_norm = np.linalg.norm(indata) ** 3
 		volume = np.clip(int(volume_norm), 0, 300)
 
@@ -40,6 +41,8 @@ def audio_callback(indata, frames, time, status):
 
 		if (volume_norm == 0.0):
 			return
+	elif (PLAY == "Face"):
+		volStr = ledface.GetClosestEmotionLED()
 
 	SERVER = socket.socket(type=socket.SOCK_DGRAM)
 	SERVER.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -61,34 +64,22 @@ def setPlay(status):
 	global PLAY
 
 	PLAY = status
+	if (status == "Face"):
+		ledface.RegisterCamera()
+	else:
+		ledface.CloseCamera()
 
 	f = open("play.txt", "w")
 	f.write(PLAY)
 	f.close()
 
-def on(systray):
+def mode(systray, option):
 	global PLAY
 
-	if (PLAY == "True"):
+	if (PLAY == option):
 		return
 	
-	setPlay("True")
-
-def off(systray):
-	global PLAY
-
-	if (PLAY == "False"):
-		return
-
-	setPlay("False")
-
-def light(systray):
-	global PLAY
-
-	if (PLAY == "Light"):
-		return
-	
-	setPlay("Light")
+	setPlay(option)
 
 def on_quit_callback(systray):
 	SERVER.shutdown(socket.SHUT_RDWR)
@@ -96,7 +87,11 @@ def on_quit_callback(systray):
 
 	os._exit(1)
     
-menu_options = (("Music Mode", None, (("On", None, on), ("Off", None, off), ("Light", None, light),)),)
+modes = ()
+for option in ["On", "Off", "Light", "Face"]:
+	modes += ((option, None, partial(mode, Placeholder, option)),)
+
+menu_options = (("Music Mode", None, modes),)
 systray = SysTrayIcon("icon.ico", "LED Controller", menu_options, on_quit=on_quit_callback)
 systray.start()
 
@@ -106,7 +101,6 @@ PLAY = open("play.txt", "r").read()
 SERVER_IP = ("192.168.0.3", 5000)
 
 PASSTIME = -1
-COUNT = 20
 
 timer.enter(0, 1, getAudio, (timer, ))
 timer.run()
