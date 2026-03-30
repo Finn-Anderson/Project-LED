@@ -11,15 +11,15 @@ import ledface
 from tkinter import colorchooser
 import tkinter as tk
 
-root = tk.Tk()
-root.title("Set Brightness")
-ws = root.winfo_screenwidth()
-hs = root.winfo_screenheight()
+ROOT = tk.Tk()
+ROOT.title("Set Brightness")
+ws = ROOT.winfo_screenwidth()
+hs = ROOT.winfo_screenheight()
 w = 200
 h = 48
 x = (ws/2) - (w/2)
 y = (hs/2) - (h/2)
-root.geometry("%dx%d+%d+%d" % (w, h, x, y))
+ROOT.geometry("%dx%d+%d+%d" % (w, h, x, y))
 
 def setBrightness(entry):
 	global BRIGHTNESS
@@ -35,14 +35,15 @@ def setBrightness(entry):
 
 	if (value != ""):
 		BRIGHTNESS = b
+		saveToFile()
 
 entry_text = tk.StringVar()
 entry_text.set("")
-entry = tk.Entry(root, textvariable=entry_text)
+entry = tk.Entry(ROOT, textvariable=entry_text)
 entry.pack()
 entry.bind('<KeyRelease>', lambda e: setBrightness(e.widget))
 
-root.withdraw()
+ROOT.withdraw()
 
 def volume_to_rgb(volume):
 	colour = colorsys.hsv_to_rgb(volume / 360, 1, 1)
@@ -139,9 +140,10 @@ def saveToFile():
 	global PLAY
 	global DEVICE
 	global COLOUR
+	global BRIGHTNESS
 
 	f = open("play.txt", "w")
-	f.write(PLAY + "," +  str(DEVICE) + "," + COLOUR)
+	f.write(PLAY + "," +  str(DEVICE) + "," + COLOUR + "," + BRIGHTNESS)
 	f.close()
 
 def mode(systray, option):
@@ -178,14 +180,20 @@ def lightColour(systray):
 
 def brightness(systray):
 	global BRIGHTNESS
+	global root
+
 	entry_text.set(str(BRIGHTNESS))
-	root.deiconify()
+
+	ROOT.deiconify()
 
 def on_quit_callback(systray):
-	SERVER.shutdown(socket.SHUT_RDWR)
-	SERVER.close()
+	global STREAM
+	global ROOT
 
-	os._exit(1)
+	STREAM.close()
+
+	os._exit(0)
+	ROOT.destroy()
 
 P = pyaudio.PyAudio()
 default_device = -1
@@ -219,10 +227,12 @@ try:
 	PLAY = text[0]
 	DEVICE = int(text[1])
 	COLOUR = text[2]
+	BRIGHTNESS = text[3]
 except:
 	PLAY = "On"
 	DEVICE = default_device
 	COLOUR = "228 112 37"
+	BRIGHTNESS = "50"
 
 STREAM = None
 EVENT = None
@@ -230,9 +240,8 @@ EVENT = None
 SERVER_IP = ("192.168.0.3", 5000)
 
 PASSTIME = -1
-BRIGHTNESS = "60"
 
 setColour(COLOUR)
 setPlay(PLAY)
 setAudio(DEVICE)
-root.mainloop()
+ROOT.mainloop()
