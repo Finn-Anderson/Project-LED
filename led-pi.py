@@ -5,24 +5,25 @@ import asyncio
 import numpy as np
 import math
 
-DEFAULT_RGB = "0 0 0"
-PREVIOUS_RGB = DEFAULT_RGB
-CURRENT_RGB = DEFAULT_RGB
-TARGET_RGB = DEFAULT_RGB
+DEFAULT_RGBA = "0 0 0 0"
+PREVIOUS_RGBA = DEFAULT_RGBA
+CURRENT_RGBA = DEFAULT_RGBA
+TARGET_RGBA = DEFAULT_RGBA
 COUNT = 0
 
-def setRGB(data):
-	global PREVIOUS_RGB
-	global TARGET_RGB
+def setRGBA(data):
+	global PREVIOUS_RGBA
+	global TARGET_RGBA
 	global COUNT
 	
-	COUNT = 0
+	if (DEFAULT_RGBA != data):
+		COUNT = 0
 	
-	if (TARGET_RGB == data):
+	if (TARGET_RGBA == data):
 		return
 	
-	PREVIOUS_RGB = TARGET_RGB
-	TARGET_RGB = data
+	PREVIOUS_RGBA = TARGET_RGBA
+	TARGET_RGBA = data
 
 def numRounded(value):
 	if (value < 0):
@@ -30,45 +31,46 @@ def numRounded(value):
 	else:
 		return math.ceil(value)
 	
-async def setRGBFill():
-	global PREVIOUS_RGB
-	global CURRENT_RGB
-	global TARGET_RGB
+async def setRGBAFill():
+	global PREVIOUS_RGBA
+	global CURRENT_RGBA
+	global TARGET_RGBA
 	global COUNT
 	
 	while True:
 		await asyncio.sleep(0.01)
 			
-		targetData = TARGET_RGB.split()
-		currentData = CURRENT_RGB.split()
-		priorData = PREVIOUS_RGB.split()
+		targetData = TARGET_RGBA.split()
+		currentData = CURRENT_RGBA.split()
+		priorData = PREVIOUS_RGBA.split()
 		
 		r = int(np.clip(int(currentData[0]) + numRounded((int(targetData[0]) - int(priorData[0]) / 10), 0, 255)))
 		g = int(np.clip(int(currentData[1]) + numRounded((int(targetData[1]) - int(priorData[1]) / 10), 0, 255)))
 		b = int(np.clip(int(currentData[2]) + numRounded((int(targetData[2]) - int(priorData[2]) / 10), 0, 255)))
+		a = int(np.clip(int(currentData[3]) + numRounded((int(targetData[3]) - int(priorData[3]) / 10), 0, 100)))
 		
-		temp_rgb = "{} {} {}".format(r, g, b)
+		temp_rgb = "{} {} {} {}".format(r, g, b, a)
 
-		if (CURRENT_RGB == temp_rgb):
+		if (CURRENT_RGBA == temp_rgb):
 			setCount()
 			
 			continue
 		
-		CURRENT_RGB = temp_rgb
+		CURRENT_RGBA = temp_rgb
 
-		pixels = neopixel.NeoPixel(board.D18, 300, brightness = 0.5)
+		pixels = neopixel.NeoPixel(board.D18, 300, brightness = float(a) / 100.0)
 		pixels.fill((r, g, b))
 
 def setCount():
-	global PREVIOUS_RGB
-	global CURRENT_RGB
-	global TARGET_RGB
+	global PREVIOUS_RGBA
+	global CURRENT_RGBA
+	global TARGET_RGBA
 	global COUNT
 	
 	COUNT += 1
 	
 	if (COUNT == 500):
-		setRGB(DEFAULT_RGB)
+		setRGBA(DEFAULT_RGBA)
 		
 async def server():
 	s = socket.socket(type=socket.SOCK_DGRAM)
@@ -85,20 +87,19 @@ async def server():
 			data = data.decode("ascii")
 		
 			if (data != ""):
-				setRGB(data)
+				setRGBA(data)
 		except Exception as e:
 			print(e)
 
-			setRGB(DEFAULT_RGB)
+			setRGBA(DEFAULT_RGBA)
 
 			print ("Disconnected")
 	
 async def main():
-	setRGB(DEFAULT_RGB)
+	setRGBA(DEFAULT_RGBA)
 	
 	async with asyncio.TaskGroup() as tg:
-		tg.create_task(setRGBFill())
+		tg.create_task(setRGBAFill())
 		tg.create_task(server())
-
 
 asyncio.run(main())
