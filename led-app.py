@@ -2,246 +2,217 @@ import time
 import numpy as np
 import sounddevice as sd
 import pyaudiowpatch as pyaudio
-from infi.systray import SysTrayIcon
 from functools import partial, Placeholder
 import os
 import socket
 import colorsys
 import ledface
-from tkinter import colorchooser
-import tkinter as tk
+import unisystray
+from PyQt6.QtGui import *
+from PyQt6.QtWidgets import *
 
-ROOT = tk.Tk()
-ROOT.title("Set Brightness")
-ws = ROOT.winfo_screenwidth()
-hs = ROOT.winfo_screenheight()
-w = 200
-h = 48
-x = (ws/2) - (w/2)
-y = (hs/2) - (h/2)
-ROOT.geometry("%dx%d+%d+%d" % (w, h, x, y))
+class LEDApp():
+	def __init__(self):
+		self.stream = None
+		self.event = None
 
-def setBrightness(entry):
-	global BRIGHTNESS
+		self.server_ip = ("192.168.0.3", 5000)
 
-	try:
-		value = int(np.round(float(entry.get().strip())))
-		value = np.clip(value, 0, 100)
-	except:
-		value = ""
+		self.passtime = -1
 
-	b = str(value)
-	entry_text.set(b)
+		modes = self.getModesInfo()
+		devices = self.getDevicesInfo()
 
-	if (value != ""):
-		BRIGHTNESS = b
-		saveToFile()
+		try:
+			text = open("play.txt", "r").read()
+			text = text.split(",")
+			self.play = text[0]
+			self.device = int(text[1])
+			self.colour = text[2]
+			self.brightness = int(text[3])
+		except:
+			self.play = "On"
+			self.device = self.default_device
+			self.colour = "228 112 37"
+			self.brightness = 50
 
-entry_text = tk.StringVar()
-entry_text.set("")
-entry = tk.Entry(ROOT, textvariable=entry_text)
-entry.pack()
-entry.bind('<KeyRelease>', lambda e: setBrightness(e.widget))
+			self.saveToFile()
 
-ROOT.withdraw()
+		self.getAudio()
 
-def volume_to_rgb(volume):
-	colour = colorsys.hsv_to_rgb(volume / 360, 1, 1)
+		self.tray = unisystray.Tray("images/icon.png", self.on_quit_callback)
+		menu = self.tray.createMenu("Tray", False)
 
-	r = colour[2] * 255
-	g = colour[1] * 255
-	b = colour[0] * 255
+		modesMenu = self.tray.createMenu("Modes", True)
+		for mode in modes:
+			modesMenu.createAction(mode[0], mode[1], mode[0] == self.play)
+		menu.addMenu(modesMenu)
 
-	return int(r), int(g), int(b)
+		devicesMenu = self.tray.createMenu("Devices", True)
+		for device in devices:
+			devicesMenu.createAction(device[0], device[1], device[2] == self.device)
+		menu.addMenu(devicesMenu)
 
-def audio_callback(in_data, frames, time_info, status):
-	global PLAY
-	global PASSTIME
-	global SERVER
-	global SERVER_IP
-	global COLOUR
-	global BRIGHTNESS
+		menu.createAction("Light Colour", self.lightColour)
+		menu.createAction("Brightness", self.brightnessLevel)
+		self.tray.addMenu(self.tray, menu)
 
-	if (PLAY == "Off" or PASSTIME > time.time()):
-		return (in_data, pyaudio.paContinue)
+		self.colourDialog = QColorDialog()
+		self.brightnessDialog = QInputDialog()
+		self.brightnessDialog.setWindowTitle("Set Brightness")
+		self.brightnessDialog.setLabelText("Brightness:")
+		self.brightnessDialog.setIntValue(self.brightness)
+		self.brightnessDialog.setIntRange(0, 100)
 
-	PASSTIME = time.time() + 0.2
+		self.tray.display()
+
+	def getModesInfo(self):
+		modes = ()
+		for option in ["On", "Off", "Light", "Face"]:
+			modes += (option, partial(self.mode, Placeholder, option)),
+
+		return modes
+
+	def getDevicesInfo(self):
+		self.pyAudio = pyaudio.PyAudio()
+		self.default_device = -1
+
+		audio_devices = ()
+		for loopback in self.pyAudio.get_loopback_device_info_generator():
+			if (self.default_device == -1):
+				self.default_device = loopback["index"]
+				
+			audio_devices += (loopback["name"].removesuffix("[Loopback]"), partial(self.audioDevice, Placeholder, loopback["index"]), loopback["index"]),
+
+		for device in sd.query_devices():
+			if (device["max_input_channels"] == 0 or device["hostapi"] != 2):
+				continue
+
+			if (self.default_device == -1):
+				self.default_device = device["index"]
+			
+			audio_devices += (device["name"], partial(self.audioDevice, Placeholder, device["index"]), device["index"]),
+
+		return audio_devices
 	
-	volStr = COLOUR
+	def volume_to_rgb(self, volume):
+		colour = colorsys.hsv_to_rgb(volume / 360, 1, 1)
 
-	if (PLAY == "On"):
-		volume_norm = np.linalg.norm(np.frombuffer(in_data, dtype=np.int16)) ** (1/1.9)
-		volume = np.clip(int(volume_norm), 0, 300)
+		r = colour[2] * 255
+		g = colour[1] * 255
+		b = colour[0] * 255
 
-		volTuple = volume_to_rgb(volume)
+		return int(r), int(g), int(b)
+	
+	def audio_callback(self, in_data, frames, time_info, status):
 
-		volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
-
-		if (volume_norm == 0.0):
+		if (self.play == "Off" or self.passtime > time.time()):
 			return (in_data, pyaudio.paContinue)
-	elif (PLAY == "Face"):
-		volStr = ledface.GetClosestEmotionLED()
 
-	SERVER = socket.socket(type=socket.SOCK_DGRAM)
-	SERVER.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-	volStr += " " + BRIGHTNESS
-
-	try:
-		SERVER.connect(SERVER_IP)
-		SERVER.sendall(volStr.encode("ascii"))
-		SERVER.close()
-	except:
-		pass
-
-	return (in_data, pyaudio.paContinue)
-	
-def getAudio():
-	global P
-	global DEVICE
-	global STREAM
-
-	if (STREAM):
-		STREAM.close()
-
-	device = P.get_device_info_by_index(DEVICE)
-	STREAM = P.open(format=pyaudio.paInt16, channels=device["maxInputChannels"], rate=int(device["defaultSampleRate"]), frames_per_buffer=512, input=True, input_device_index=device["index"], stream_callback=audio_callback)
-
-async def test():
-	await getAudio()
-
-def setPlay(status):
-	global PLAY
-
-	PLAY = status
-	if (status == "Face"):
-		ledface.RegisterCamera()
-	else:
-		ledface.CloseCamera()
-
-	saveToFile()
-
-def setAudio(status):
-	global DEVICE
-
-	DEVICE = status
-	getAudio()
-
-	saveToFile()
-
-def setColour(status):
-	global COLOUR
-
-	COLOUR = status
-
-	saveToFile()
-
-def saveToFile():
-	global PLAY
-	global DEVICE
-	global COLOUR
-	global BRIGHTNESS
-
-	f = open("play.txt", "w")
-	f.write(PLAY + "," +  str(DEVICE) + "," + COLOUR + "," + BRIGHTNESS)
-	f.close()
-
-def mode(systray, option):
-	global PLAY
-
-	if (PLAY == option):
-		return
-	
-	setPlay(option)
-
-def audioDevice(systray, option):
-	global DEVICE
-
-	if (DEVICE == option):
-		return
-	
-	setAudio(option)
-
-def lightColour(systray):
-	global COLOUR
-	defaultColour = COLOUR.split(" ")
-	color_code = colorchooser.askcolor(title="Choose color", color=(int(defaultColour[0]), int(defaultColour[1]), int(defaultColour[2])))
-	
-	if (color_code[0] == None):
-		return
-	
-	rgb = color_code[0]
-	rgbStr = str(rgb[0]) + " " + str(rgb[1]) + " " + str(rgb[2])
-	
-	if (COLOUR == rgbStr):
-		return
-	
-	setColour(rgbStr)
-
-def brightness(systray):
-	global BRIGHTNESS
-	global root
-
-	entry_text.set(str(BRIGHTNESS))
-
-	ROOT.deiconify()
-
-def on_quit_callback(systray):
-	global STREAM
-	global ROOT
-
-	STREAM.close()
-
-	os._exit(0)
-	ROOT.destroy()
-
-P = pyaudio.PyAudio()
-default_device = -1
-audio_devices = ()
-for loopback in P.get_loopback_device_info_generator():
-	if (default_device == -1):
-		default_device = loopback["index"]
+		self.passtime = time.time() + 0.2
 		
-	audio_devices += ((loopback["name"].removesuffix("[Loopback]"), None, partial(audioDevice, Placeholder, loopback["index"])),)
+		volStr = self.colour
 
-for device in sd.query_devices():
-	if (device["max_input_channels"] == 0 or device["hostapi"] != 2):
-		continue
+		if (self.play == "On"):
+			volume_norm = np.linalg.norm(np.frombuffer(in_data, dtype=np.int16)) ** (1/1.9)
+			volume = np.clip(int(volume_norm), 0, 300)
 
-	if (default_device == -1):
-		default_device = device["index"]
+			volTuple = self.volume_to_rgb(volume)
+
+			volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
+
+			if (volume_norm == 0.0):
+				return (in_data, pyaudio.paContinue)
+		elif (self.play == "Face"):
+			volStr = ledface.GetClosestEmotionLED()
+
+		self.server = socket.socket(type=socket.SOCK_DGRAM)
+		self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+		volStr += " " + str(self.brightness)
+
+		try:
+			self.server.connect(self.server_ip)
+			self.server.sendall(volStr.encode("ascii"))
+			self.server.close()
+		except:
+			pass
+
+		return (in_data, pyaudio.paContinue)
 	
-	audio_devices += ((device["name"], None, partial(audioDevice, Placeholder, device["index"])),)
+	def getAudio(self):
+		if (self.stream):
+			self.stream.close()
+
+		device = self.pyAudio.get_device_info_by_index(self.device)
+		self.stream = self.pyAudio.open(format=pyaudio.paInt16, channels=device["maxInputChannels"], rate=int(device["defaultSampleRate"]), frames_per_buffer=512, input=True, input_device_index=device["index"], stream_callback=self.audio_callback)
+
+	def setPlay(self, status):
+		self.play = status
+
+		if (status == "Face"):
+			ledface.RegisterCamera()
+		else:
+			ledface.CloseCamera()
+
+		self.saveToFile()
+
+	def setAudio(self, status):
+		self.device = status
+		self.getAudio()
+
+		self.saveToFile()
+
+	def setColour(self, status):
+		self.colour = status
+
+		self.saveToFile()
+
+	def setBrightness(self, status):
+		self.brightness = status
+
+		self.saveToFile()
+
+	def saveToFile(self):
+		f = open("play.txt", "w")
+		f.write(self.play + "," +  str(self.device) + "," + self.colour + "," + str(self.brightness))
+		f.close()
+
+	def mode(self, checked, option):
+		if (self.play == option):
+			return
 		
-modes = ()
-for option in ["On", "Off", "Light", "Face"]:
-	modes += ((option, None, partial(mode, Placeholder, option)),)
+		self.setPlay(option)
 
-menu_options = (("Music Mode", None, modes), ("Input Device", None, audio_devices), ("Light Colour", None, lightColour), ("Brightness", None, brightness))
-systray = SysTrayIcon("icon.ico", "LED Controller", menu_options, on_quit=on_quit_callback)
-systray.start()
+	def audioDevice(self, checked, option):
+		if (self.device == option):
+			return
+		
+		self.setAudio(option)
 
-try:
-	text = open("play.txt", "r").read()
-	text = text.split(",")
-	PLAY = text[0]
-	DEVICE = int(text[1])
-	COLOUR = text[2]
-	BRIGHTNESS = text[3]
-except:
-	PLAY = "On"
-	DEVICE = default_device
-	COLOUR = "228 112 37"
-	BRIGHTNESS = "50"
+	def lightColour(self):
+		defaultColour = self.colour.split(" ")
+		defaultColour = "#%02x%02x%02x" % (int(defaultColour[0]), int(defaultColour[1]), int(defaultColour[2]))
+		self.colourDialog.setCurrentColor(QColor(defaultColour))
 
-STREAM = None
-EVENT = None
+		if self.colourDialog.exec():
+			colour = self.colourDialog.currentColor()
 
-SERVER_IP = ("192.168.0.3", 5000)
+			rgbStr = "%d %d %d" % (colour.red(), colour.green(), colour.blue())
 
-PASSTIME = -1
+			if (rgbStr == self.colour):
+				return
+			
+			self.setColour(rgbStr)
 
-setColour(COLOUR)
-setPlay(PLAY)
-setAudio(DEVICE)
-ROOT.mainloop()
+	def brightnessLevel(self):
+		if self.brightnessDialog.exec():
+			self.setBrightness(self.brightnessDialog.intValue())
+
+	def on_quit_callback(self):
+		self.stream.close()
+		self.tray.quit()
+
+		os._exit(0)
+
+LEDApp()
