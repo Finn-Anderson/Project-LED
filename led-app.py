@@ -22,17 +22,20 @@ class LEDApp():
 
 		modes = self.getModesInfo()
 		devices = self.getDevicesInfo()
+		self.device = self.default_device
 
 		try:
 			text = open("play.txt", "r").read()
 			text = text.split(",")
 			self.play = text[0]
-			self.device = int(text[1])
+			for device in devices:
+				if (device[2] == int(text[1])):
+					self.device = int(text[1])
+					break
 			self.colour = text[2]
 			self.brightness = int(text[3])
 		except:
 			self.play = "On"
-			self.device = self.default_device
 			self.colour = "228 112 37"
 			self.brightness = 50
 
@@ -143,6 +146,8 @@ class LEDApp():
 	def getAudio(self):
 		if (self.stream):
 			self.stream.close()
+
+		print(self.device)
 
 		device = self.pyAudio.get_device_info_by_index(self.device)
 		self.stream = self.pyAudio.open(format=pyaudio.paInt16, channels=device["maxInputChannels"], rate=int(device["defaultSampleRate"]), frames_per_buffer=512, input=True, input_device_index=device["index"], stream_callback=self.audio_callback)
