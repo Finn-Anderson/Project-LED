@@ -16,8 +16,6 @@ class LEDApp():
 		self.stream = None
 		self.event = None
 
-		self.server_ip = ("192.168.0.3", 5000)
-
 		self.passtime = -1
 
 		modes = self.getModesInfo()
@@ -34,12 +32,16 @@ class LEDApp():
 					break
 			self.colour = text[2]
 			self.brightness = int(text[3])
+			ip = text[4]
 		except:
 			self.play = "On"
 			self.colour = "228 112 37"
 			self.brightness = 50
+			ip = "192.168.0.3"
 
 			self.saveToFile()
+
+		self.server_ip = (ip, 5000)
 
 		self.getAudio()
 
@@ -58,6 +60,7 @@ class LEDApp():
 
 		menu.createAction("Light Colour", self.lightColour)
 		menu.createAction("Brightness", self.brightnessLevel)
+		menu.createAction("IP Address", self.ipAddress)
 		self.tray.addMenu(self.tray, menu)
 
 		self.colourDialog = QColorDialog()
@@ -66,6 +69,11 @@ class LEDApp():
 		self.brightnessDialog.setLabelText("Brightness:")
 		self.brightnessDialog.setIntValue(self.brightness)
 		self.brightnessDialog.setIntRange(0, 100)
+
+		self.ipDialog = QInputDialog()
+		self.ipDialog.setWindowTitle("Set IP Address")
+		self.ipDialog.setLabelText("IP Address:")
+		self.ipDialog.setTextValue(self.server_ip[0])
 
 		self.tray.display()
 
@@ -108,7 +116,6 @@ class LEDApp():
 		return int(r), int(g), int(b)
 	
 	def audio_callback(self, in_data, frames, time_info, status):
-
 		if (self.play == "Off" or self.passtime > time.time()):
 			return (in_data, pyaudio.paContinue)
 
@@ -147,8 +154,6 @@ class LEDApp():
 		if (self.stream):
 			self.stream.close()
 
-		print(self.device)
-
 		device = self.pyAudio.get_device_info_by_index(self.device)
 		self.stream = self.pyAudio.open(format=pyaudio.paInt16, channels=device["maxInputChannels"], rate=int(device["defaultSampleRate"]), frames_per_buffer=512, input=True, input_device_index=device["index"], stream_callback=self.audio_callback)
 
@@ -178,9 +183,14 @@ class LEDApp():
 
 		self.saveToFile()
 
+	def setIP(self, status):
+		self.server_ip = (status, 5000)
+
+		self.saveToFile()
+
 	def saveToFile(self):
 		f = open("play.txt", "w")
-		f.write(self.play + "," +  str(self.device) + "," + self.colour + "," + str(self.brightness))
+		f.write(self.play + "," +  str(self.device) + "," + self.colour + "," + str(self.brightness) + "," + self.server_ip[0])
 		f.close()
 
 	def mode(self, checked, option):
@@ -213,6 +223,10 @@ class LEDApp():
 	def brightnessLevel(self):
 		if self.brightnessDialog.exec():
 			self.setBrightness(self.brightnessDialog.intValue())
+
+	def ipAddress(self):
+		if self.ipDialog.exec():
+			self.setIP(self.ipDialog.textValue())
 
 	def on_quit_callback(self):
 		self.stream.close()
