@@ -17,6 +17,7 @@ class LEDApp():
 		self.event = None
 
 		self.passtime = -1
+		self.passVolume = 0
 
 		modes = self.getModesInfo()
 		devices = self.getDevicesInfo()
@@ -31,17 +32,17 @@ class LEDApp():
 					self.device = int(text[1])
 					break
 			self.colour = text[2]
-			self.brightness = int(text[3])
-			ip = text[4]
+			self.defaultTimer = int(text[3])
+			self.brightness = int(text[4])
+			self.server_ip = (text[5], 5000)
 		except:
 			self.play = "On"
 			self.colour = "228 112 37"
+			self.defaultTimer = 3
 			self.brightness = 50
-			ip = "192.168.0.3"
+			self.server_ip = ("192.168.0.3", 5000)
 
 			self.saveToFile()
-
-		self.server_ip = (ip, 5000)
 
 		self.getAudio()
 
@@ -59,11 +60,18 @@ class LEDApp():
 		menu.addMenu(devicesMenu)
 
 		menu.createAction("Light Colour", self.lightColour)
+		menu.createAction("Default Timer", self.timerSeconds)
 		menu.createAction("Brightness", self.brightnessLevel)
 		menu.createAction("IP Address", self.ipAddress)
 		self.tray.addMenu(self.tray, menu)
 
 		self.colourDialog = QColorDialog()
+
+		self.timerDialog = QInputDialog()
+		self.timerDialog.setWindowTitle("Set Default Light Timer")
+		self.timerDialog.setLabelText("Seconds before no music on music mode switches to light mode:")
+		self.timerDialog.setIntValue(self.defaultTimer)
+
 		self.brightnessDialog = QInputDialog()
 		self.brightnessDialog.setWindowTitle("Set Brightness")
 		self.brightnessDialog.setLabelText("Brightness:")
@@ -127,12 +135,15 @@ class LEDApp():
 			volume_norm = np.linalg.norm(np.frombuffer(in_data, dtype=np.int16)) ** (1/1.9)
 			volume = np.clip(int(volume_norm), 0, 300)
 
-			volTuple = self.volume_to_rgb(volume)
+			if (volume < 100):
+				self.passVolume += 0.2
+			else:
+				self.passVolume = 0
 
-			volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
+			if (self.passVolume <= self.defaultTimer):
+				volTuple = self.volume_to_rgb(volume)
 
-			if (volume_norm == 0.0):
-				return (in_data, pyaudio.paContinue)
+				volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
 		elif (self.play == "Face"):
 			volStr = ledface.GetClosestEmotionLED()
 
@@ -178,6 +189,11 @@ class LEDApp():
 
 		self.saveToFile()
 
+	def setDefaultTimer(self, status):
+		self.defaultTimer = status
+
+		self.saveToFile()
+
 	def setBrightness(self, status):
 		self.brightness = status
 
@@ -190,7 +206,7 @@ class LEDApp():
 
 	def saveToFile(self):
 		f = open("play.txt", "w")
-		f.write(self.play + "," +  str(self.device) + "," + self.colour + "," + str(self.brightness) + "," + self.server_ip[0])
+		f.write(self.play + "," +  str(self.device) + "," + self.colour + "," + str(self.defaultTimer) + "," + str(self.brightness) + "," + self.server_ip[0])
 		f.close()
 
 	def mode(self, checked, option):
@@ -219,6 +235,10 @@ class LEDApp():
 				return
 			
 			self.setColour(rgbStr)
+
+	def timerSeconds(self):
+		if self.timerDialog.exec():
+			self.setDefaultTimer(self.timerDialog.intValue())
 
 	def brightnessLevel(self):
 		if self.brightnessDialog.exec():
