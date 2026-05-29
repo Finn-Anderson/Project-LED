@@ -1,9 +1,12 @@
 import time
 import numpy as np
 import sounddevice as sd
-import pyaudiowpatch as pyaudio
 from functools import partial, Placeholder
 import os
+if os.name == 'nt':
+	import pyaudiowpatch as pyaudio
+else:
+	import pyaudio
 import socket
 import colorsys
 import ledface
@@ -97,11 +100,12 @@ class LEDApp():
 		self.default_device = -1
 
 		audio_devices = ()
-		for loopback in self.pyAudio.get_loopback_device_info_generator():
-			if (self.default_device == -1):
-				self.default_device = loopback["index"]
-				
-			audio_devices += (loopback["name"].removesuffix("[Loopback]"), partial(self.audioDevice, Placeholder, loopback["index"]), loopback["index"]),
+		if os.name == 'nt':
+			for loopback in self.pyAudio.get_loopback_device_info_generator():
+				if (self.default_device == -1):
+					self.default_device = loopback["index"]
+					
+				audio_devices += (loopback["name"].removesuffix("[Loopback]"), partial(self.audioDevice, Placeholder, loopback["index"]), loopback["index"]),
 
 		for device in sd.query_devices():
 			if (device["max_input_channels"] == 0 or device["hostapi"] != 2):
