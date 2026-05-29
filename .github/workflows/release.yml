@@ -25,10 +25,6 @@ jobs:
       with:
         python-version: 3.14.x
 
-    - name: Install Python dependencies
-      run: |
-        pip install -r requirements.txt
-
     - name: Install PortAudio (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -51,6 +47,10 @@ jobs:
       run: |
         $env:VCPKG_PATH = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows-static"
       shell: pwsh
+
+    - name: Install Python dependencies
+      run: |
+        pip install -r requirements.txt
 
     - name: Install PyInstaller
       run: |
