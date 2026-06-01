@@ -42,15 +42,16 @@ jobs:
       shell: bash
       run: |
         if [[ "$RUNNER_OS" = "Windows" ]]; then
-          echo '"image_path=images/icon.png;images"' >> $GITHUB_ENV
+          echo "image_path=images/icon.png;images" >> $GITHUB_ENV
         else
-          echo '"image_path=images/icon.png:images"' >> $GITHUB_ENV
+          echo "image_path=images/icon.png:images" >> $GITHUB_ENV
         fi
 
     - name: Build executable
+      shell: bash
       run: |
-        pyinstaller --clean -y -n "led-app" --noconsole --onefile --add-data=$image_path --icon="images/icon.ico" led-app.py
-        pyinstaller --clean -y -n "led-pi" --noconsole --onefile --add-data=$image_path --icon="images/icon.ico" led-pi.py
+        pyinstaller --clean -y -n "led-app" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-app.py
+        pyinstaller --clean -y -n "led-pi" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-pi.py
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
