@@ -2,6 +2,7 @@ import time
 import numpy as np
 import sounddevice as sd
 from functools import partial, Placeholder
+import sys
 import os
 if os.name == 'nt':
 	import pyaudiowpatch as pyaudio
@@ -49,7 +50,12 @@ class LEDApp():
 
 		self.getAudio()
 
-		self.tray = unisystray.Tray("images/icon.png", self.on_quit_callback)
+		if getattr(sys, "frozen", False):
+			path = os.path.join(sys._MEIPASS, "images/icon.png")
+		else:
+			path = "images/icon.png"
+
+		self.tray = unisystray.Tray(path, self.on_quit_callback)
 		menu = self.tray.createMenu("Tray", False)
 
 		modesMenu = self.tray.createMenu("Modes", True)
