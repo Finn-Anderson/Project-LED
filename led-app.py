@@ -3,7 +3,10 @@ import numpy as np
 import sounddevice as sd
 from functools import partial, Placeholder
 import os
-import pyaudiowpatch as pyaudio
+if os.name == 'nt':
+	import pyaudiowpatch as pyaudio
+else:
+	import pyaudio
 import socket
 import colorsys
 import ledface

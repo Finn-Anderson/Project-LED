@@ -1,4 +1,5 @@
-git+https://github.com/Finn-Anderson/PyAudioWPatch3.14.git
+git+https://github.com/Finn-Anderson/pyaudio-3.14.git; platform_system != "Windows"
+pyaudiowpatch==0.2.12.8; platform_system == "Windows"
 board==1.0
 neopixel==0.0.1
 numpy==2.4.6
