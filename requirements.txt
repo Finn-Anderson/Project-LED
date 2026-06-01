@@ -1,10 +1,9 @@
+git+https://github.com/Finn-Anderson/PyAudioWPatch3.14.git
 board==1.0
 neopixel==0.0.1
 numpy==2.4.6
 opencv_contrib_python==4.13.0.92
 opencv_python==4.13.0.92
-pyaudio==0.2.14; platform_system != "Windows"
-pyaudiowpatch==0.2.12.8; platform_system == "Windows"
 PyQt6==6.11.0
 pyqt6_sip==13.11.1
 sounddevice==0.5.5
