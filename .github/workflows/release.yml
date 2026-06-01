@@ -25,29 +25,6 @@ jobs:
       with:
         python-version: 3.14.x
 
-    - name: Install PortAudio (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y portaudio19-dev python3-dev
-
-    - name: Install PortAudio (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install portaudio
-
-    - name: Install PortAudio (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        vcpkg install portaudio:x64-windows-static
-      shell: bash
-
-    - name: Build PyAudio (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        $env:VCPKG_PATH = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows-static"
-      shell: pwsh
-
     - name: Install Python dependencies
       run: |
         pip install -r requirements.txt
