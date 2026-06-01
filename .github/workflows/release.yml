@@ -38,15 +38,14 @@ jobs:
       run: |
         pip install pyinstaller
 
-    - if: startsWith(matrix.os, 'windows')
+    - name: Set up Image Path
       shell: bash
       run: |
-        echo "image_path = images/icon.png;images" >> $GITHUB_ENV
-
-    - if: startsWith(matrix.os, 'windows') != true
-      shell: bash
-      run: |
-        echo "image_path = images/icon.png:images" >> $GITHUB_ENV
+        if [[ "$RUNNER_OS" = "Windows" ]]; then
+          echo "image_path=images/icon.png;images" >> $GITHUB_ENV
+        else
+          echo "image_path=images/icon.png:images" >> $GITHUB_ENV
+        fi
 
     - name: Build executable
       run: |
