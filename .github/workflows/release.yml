@@ -39,12 +39,14 @@ jobs:
         pip install pyinstaller
 
     - if: ${{ matrix.os }} == windows-latest
-      env:
-        image_path: "images/icon.png;images"
+      shell: bash
+      run: |
+        echo "image_path = images/icon.png;images" >> $GITHUB_ENV
 
     - if: ${{ matrix.os }} != windows-latest
-      env:
-        image_path: "images/icon.png:images"
+      shell: bash
+      run: |
+        echo "image_path = images/icon.png:images" >> $GITHUB_ENV
 
     - name: Build executable
       run: |
