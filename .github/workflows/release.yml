@@ -25,6 +25,11 @@ jobs:
       with:
         python-version: 3.14.x
 
+    - name: Set up Pillow
+      run: |
+        pip install --upgrade pip
+        pip install Pillow
+
     - name: Install Python dependencies
       run: |
         pip install -r requirements.txt
@@ -33,10 +38,18 @@ jobs:
       run: |
         pip install pyinstaller
 
+    - if: ${{ matrix.os }} == windows-latest
+      env:
+        image_path: "images/icon.png;images"
+
+    - if: ${{ matrix.os }} != windows-latest
+      env:
+        image_path: "images/icon.png:images"
+
     - name: Build executable
       run: |
-        pyinstaller --clean -y -n "led-app" --noconsole --onefile --add-data="images\icon.png;images" --icon="images\icon.ico" led-app.py
-        pyinstaller --clean -y -n "led-pi" --noconsole --onefile --add-data="images\icon.png;images" --icon="images\icon.ico" led-pi.py
+        pyinstaller --clean -y -n "led-app" --noconsole --onefile --add-data=$image_path --icon="images/icon.ico" led-app.py
+        pyinstaller --clean -y -n "led-pi" --noconsole --onefile --add-data=$image_path --icon="images/icon.ico" led-pi.py
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
