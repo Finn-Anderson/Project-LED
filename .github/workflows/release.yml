@@ -61,7 +61,8 @@ jobs:
         pyinstaller 'led-app.py'
         pyinstaller 'led-pi.py'
 
-    - uses: actions/upload-artifact@v7
+    - name: Upload ready files
+      uses: actions/upload-artifact@v7
       with:
         name: project-led-release-${{ matrix.os }}
-        path: install/*
+        path: dist/*
