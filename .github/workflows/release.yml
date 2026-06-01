@@ -50,8 +50,8 @@ jobs:
 
     - name: Build executable
       run: |
-        pyinstaller --clean -y -n "led-app" --noconsole --onefile --add-data=$image_path --icon="images/icon.ico" led-app.py
-        pyinstaller --clean -y -n "led-pi" --noconsole --onefile --add-data=$image_path --icon="images/icon.ico" led-pi.py
+        pyinstaller --clean -y -n "led-app" --noconsole --onefile --add-data=${{ env.image_path }} --icon="images/icon.ico" led-app.py
+        pyinstaller --clean -y -n "led-pi" --noconsole --onefile --add-data=${{ env.image_path }} --icon="images/icon.ico" led-pi.py
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
