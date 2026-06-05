@@ -31,6 +31,8 @@ class LEDApp():
 			text = open("play.txt", "r").read()
 			text = text.split(",")
 			self.play = text[0]
+			if (self.play == "Face"):
+				ledface.RegisterCamera()
 			for device in devices:
 				if (device[2] == int(text[1])):
 					self.device = int(text[1])
@@ -155,7 +157,7 @@ class LEDApp():
 
 				volStr = "{} {} {}".format(volTuple[0], volTuple[1], volTuple[2])
 		elif (self.play == "Face"):
-			volStr = ledface.GetClosestEmotionLED()
+			volStr = ledface.GetClosestEmotionLED(volStr)
 
 		self.server = socket.socket(type=socket.SOCK_DGRAM)
 		self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

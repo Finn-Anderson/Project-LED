@@ -2,20 +2,30 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Version to use for release tag
+        required: true
 
 jobs:
-  publish-py:
+  build:
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
+        binary:
+          - app
+          - pi
         os:
           - ubuntu-latest
           - windows-latest
           - macos-latest
 
     runs-on: ${{ matrix.os }}
+    name: ${{ matrix.binary }}
+    env:
+      BINARY: ${{ matrix.binary }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
@@ -50,11 +60,34 @@ jobs:
     - name: Build executable
       shell: bash
       run: |
-        pyinstaller --clean -y -n "led-app" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-app.py
-        pyinstaller --clean -y -n "led-pi" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-pi.py
+          pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-$BINARY.py
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
       with:
-        name: project-led-release-${{ matrix.os }}
+        name: project-led-${{ matrix.os }}-${{ matrix.binary }}
         path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: project-led-*
+          path: dist/*
+          merge-multiple: true
+
+      - name: Create release
+        run: gh release create "$TAG" --generate-notes dist/*.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag }}

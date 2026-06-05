@@ -1,88 +1,76 @@
+import os
+os.environ["KERAS_BACKEND"] = "torch"
+
+import sys
 import cv2
 import numpy as np
-"""
-TODO Make TensorFlow compatible with Python 3.14
-from deepface import DeepFace
+from keras import models
 
-cap = cv2.VideoCapture(0)
+if getattr(sys, "frozen", False):
+	path = os.path.join(sys._MEIPASS, "model/cnn_model.keras")
+else:
+	path = "model/cnn_model.keras"
+
+model = models.load_model(path)
+emotions = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
 face_classifier = cv2.CascadeClassifier(
 	cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 
-def detect_bounding_box(vid):
-	gray_image = cv2.cvtColor(vid, cv2.COLOR_BGR2GRAY)
+def CropFrame(frame):
+	gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 	faces = face_classifier.detectMultiScale(gray_image, 1.1, 5, minSize=(40, 40))
+
+	if (len(faces) == 0):
+		return []
+	
 	for (x, y, w, h) in faces:
-		cv2.rectangle(vid, (x, y), (x + w, y + h), (0, 255, 0), 4)
-	return faces
+		crop = gray_image[y:y + h, x:x + w]
 
-while(1):
-	ret, frame = cap.read()
+	return crop
 
-	emotion_analysis = DeepFace.analyze(frame, actions=['emotion'])
-
-	faces = detect_bounding_box(
-		frame
-	)  # apply the function we created to the video frame
-
-	# Show the image with detected emotion
-	cv2.putText(frame, emotion_analysis['dominant_emotion'], (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
-	cv2.imshow("Emotion Detection", frame)
-
-	if cv2.waitKey(1) & 0xFF == ord("q"):
-		break
-
-cap.release()
-cv2.destroyAllWindows()
-"""
-
-CAM = cv2.VideoCapture(0)
+CAM = None
 def RegisterCamera():
 	global CAM
 
 	CAM = cv2.VideoCapture(0)
 
 def CloseCamera():
-	CAM.release()
+	if CAM == None:
+		return
 
-def GetClosestEmotionLED():
+	CAM.release()
+	cv2.destroyAllWindows()
+
+def GetClosestEmotionLED(Default: str):
 	global CAM
 
-	colour = "228 112 37"
-
 	ret, frame = CAM.read()
-	if (ret == False):
-		return "0 0 0"
+	if ret == False:
+		return Default
 	
-	img_rgb = cv2.imread("images/happy.png")
-	img_rgb2 = cv2.imread("images/sad.png")
-	img_rgb3 = cv2.imread("images/angry.png")
-	img_rgb4 = cv2.imread("images/normal.png")
+	cropped_frame = CropFrame(frame)
 
-	# Convert it to grayscale
-	img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-	img_gray2 = cv2.cvtColor(img_rgb2, cv2.COLOR_BGR2GRAY)
-	img_gray3 = cv2.cvtColor(img_rgb3, cv2.COLOR_BGR2GRAY)
-	img_gray4 = cv2.cvtColor(img_rgb4, cv2.COLOR_BGR2GRAY)
-
-	template = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-	# Perform match operations.
-	res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
-	res2 = cv2.matchTemplate(img_gray2, template, cv2.TM_CCOEFF_NORMED)
-	res3 = cv2.matchTemplate(img_gray3, template, cv2.TM_CCOEFF_NORMED)
-	res4 = cv2.matchTemplate(img_gray4, template, cv2.TM_CCOEFF_NORMED)
-
-	value = res.max()
-	value2 = res2.max()
-	value3 = res3.max()
-	value4 = res4.max()
+	if len(cropped_frame) == 0:
+		return Default
 	
-	if (value > value2 and value > value3 and value > value4):
-		colour = "0 255 0"
-	elif (value2 > value3 and value2 > value4):
-		colour = "0 0 255"
-	elif (value3 > value4):
-		colour = "0 255 0"
+	resized = cv2.resize(cropped_frame,(48, 48))
+	normalized = resized / 255
+	reshaped = np.reshape(normalized,(-1, 48, 48, 1))
+	reshaped = np.vstack([reshaped])
+	prediction = model.predict(reshaped)
 
-	return colour
+	emotion = emotions[np.argmax(prediction)]
+
+	if emotion == "Angry":
+		return "255 39 32"
+	elif emotion == "Disgust":
+		return "32 255 39"
+	elif emotion == "Happy":
+		return "248 255 32"
+	elif emotion == "Sad":
+		return "39 32 255"
+	elif emotion == "Surprise" or emotion == "Fear":
+		return "255 151 32"
+	else:
+		return Default
