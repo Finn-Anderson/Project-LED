@@ -90,7 +90,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: project-led-*
+          pattern: led-*.tar
           path: dist
           merge-multiple: true
 
