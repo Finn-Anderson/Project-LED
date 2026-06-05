@@ -48,30 +48,34 @@ jobs:
       run: |
         pip install pyinstaller
 
-    - name: Set up Image Path
+    - name: Set up Data Paths
       shell: bash
       run: |
         if [[ "$RUNNER_OS" = "Windows" ]]; then
           echo "image_path=images/icon.png;images" >> $GITHUB_ENV
+          echo "model_path=model/cnn_model.keras;model" >> $GITHUB_ENV
         else
           echo "image_path=images/icon.png:images" >> $GITHUB_ENV
+          echo "model_path=model/cnn_model.keras:model" >> $GITHUB_ENV
         fi
 
     - name: Build executable
       shell: bash
       run: |
-        pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-$BINARY.py
+        pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --add-data="$model_path" --icon="images/icon.ico" led-$BINARY.py
 
     - name: Tar files
       shell: bash
       run: |
         tar -cvf led-$BINARY.tar dist/
+        ls
+        ls dist/
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
       with:
         name: project-led-${{ matrix.os }}-${{ matrix.binary }}
-        path: led-$BINARY.tar
+        path: dist/led-$BINARY.tar
         archive: false
 
   release:
