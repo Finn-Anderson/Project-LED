@@ -23,7 +23,7 @@ jobs:
           - macos-latest
 
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.binary }}
+    name: ${{ matrix.os }} - ${{ matrix.binary }}
     env:
       BINARY: ${{ matrix.binary }}
     steps:
@@ -60,13 +60,18 @@ jobs:
     - name: Build executable
       shell: bash
       run: |
-          pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-$BINARY.py
+        pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-$BINARY.py
+
+    - name: Zip executeable
+      shell: bash
+      run: |
+        zip -r led-$BINARY.zip dist/
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
       with:
         name: project-led-${{ matrix.os }}-${{ matrix.binary }}
-        path: dist/*
+        path: led-$BINARY.zip
 
   release:
     needs: build
