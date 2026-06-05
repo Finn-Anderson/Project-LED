@@ -62,11 +62,11 @@ jobs:
       run: |
         pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-$BINARY.py
 
-    - name: Zip executeable
+    - if: runner.os == "Darwin"
+      name: Zip executeable
       shell: bash
       run: |
-        if [[ "$RUNNER_OS" != "Windows" ]]; then
-          zip -r led-$BINARY.zip dist/
+        zip -r led-$BINARY.zip dist/
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
