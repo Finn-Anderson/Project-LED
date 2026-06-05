@@ -63,7 +63,7 @@ jobs:
     - name: Build executable
       shell: bash
       run: |
-        pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --add-data="$model_path" --icon="images/icon.ico" led-$BINARY.py
+        pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --add-data="$model_path" --icon="images/icon.ico" --hidden-import "os" led-$BINARY.py
 
     - name: Tar files
       shell: bash
