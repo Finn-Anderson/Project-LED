@@ -65,7 +65,8 @@ jobs:
     - name: Zip executeable
       shell: bash
       run: |
-        zip -r led-$BINARY.zip dist/
+        if [[ "$RUNNER_OS" != "Windows" ]]; then
+          zip -r led-$BINARY.zip dist/
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
