@@ -62,18 +62,17 @@ jobs:
       run: |
         pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-$BINARY.py
 
-    - name: Zip executeable
+    - name: Tar files
       shell: bash
       run: |
-        if [[ "$RUNNER_OS" = "Darwin" ]]; then
-          zip -r led-$BINARY.zip dist/ dist/
-        fi
+        tar -cvf led-$BINARY.tar dist/
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
       with:
         name: project-led-${{ matrix.os }}-${{ matrix.binary }}
-        path: dist/
+        path: led-$BINARY.tar
+        archive: false
 
   release:
     needs: build
@@ -90,7 +89,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: project-led-*
-          path: dist
+          path: *.tar
           merge-multiple: true
 
       - name: Create release
