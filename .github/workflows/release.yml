@@ -62,8 +62,8 @@ jobs:
       run: |
         pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --icon="images/icon.ico" led-$BINARY.py
 
-    - if: runner.os == "Darwin"
-      name: Zip executeable
+    - name: Zip executeable
+      if: runner.os == "Darwin"
       shell: bash
       run: |
         zip -r led-$BINARY.zip dist/
