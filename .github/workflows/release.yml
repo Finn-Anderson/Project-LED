@@ -26,6 +26,7 @@ jobs:
     name: ${{ matrix.os }} - ${{ matrix.binary }}
     env:
       BINARY: ${{ matrix.binary }}
+      MATRIXOS: ${{ matrix.os }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
@@ -67,7 +68,7 @@ jobs:
     - name: Tar files
       shell: bash
       run: |
-        tar -cvf led-$BINARY.tar dist/
+        tar -cvf led-$MATRIXOS-$BINARY.tar dist/
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
