@@ -66,14 +66,14 @@ jobs:
       shell: bash
       run: |
         if [[ "$RUNNER_OS" = "Darwin" ]]; then
-          zip -r led-$BINARY.zip dist/
+          zip -r led-$BINARY.zip dist/ dist/
         fi
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
       with:
         name: project-led-${{ matrix.os }}-${{ matrix.binary }}
-        path: led-$BINARY.zip
+        path: dist/
 
   release:
     needs: build
