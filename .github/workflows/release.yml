@@ -68,14 +68,12 @@ jobs:
       shell: bash
       run: |
         tar -cvf led-$BINARY.tar dist/
-        ls
-        ls dist/
 
     - name: Upload ready files
       uses: actions/upload-artifact@v7
       with:
         name: project-led-${{ matrix.os }}-${{ matrix.binary }}
-        path: dist/led-$BINARY.tar
+        path: led-${{ matrix.binary }}.tar
         archive: false
 
   release:
