@@ -1,5 +1,5 @@
 import os
-os.environ["KERAS_BACKEND"] = "torch"
+os.environ["KERAS_BACKEND"] = "jax"
 
 from keras import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense
