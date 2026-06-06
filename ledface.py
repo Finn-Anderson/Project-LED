@@ -57,7 +57,7 @@ def GetClosestEmotionLED(Default: str):
 		return Default
 
 	ret, frame = CAM.read()
-	if ret == False:
+	if ret == False or len(frame) == 0:
 		return Default
 	
 	cropped_frame = CropFrame(frame)
