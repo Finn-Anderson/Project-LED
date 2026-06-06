@@ -46,7 +46,7 @@ def CloseCamera():
 		return
 
 	CAM.release()
-	cv2.destroyAllWindows()
+	CAM = None
 
 def GetClosestEmotionLED(Default: str):
 	global CAM
