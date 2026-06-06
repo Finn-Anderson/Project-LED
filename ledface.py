@@ -49,17 +49,17 @@ def CloseCamera():
 def GetClosestEmotionLED(Default: str):
 	global CAM
 	if CAM == None:
-		return
+		return Default
 
 	ret, frame = CAM.read()
 	if ret == False:
+		return Default
+	else:
 		return Default
 	
 	cropped_frame = CropFrame(frame)
 
 	if len(cropped_frame) == 0:
-		return Default
-	else:
 		return Default
 	
 	resized = cv2.resize(cropped_frame,(48, 48))
