@@ -70,7 +70,7 @@ def GetClosestEmotionLED(Default: str):
 	normalized = resized / 255
 	reshaped = np.reshape(normalized,(-1, 48, 48, 1))
 	reshaped = np.vstack([reshaped])
-	prediction = MODEL.predict(reshaped)
+	prediction = MODEL.predict(reshaped, verbose=0)
 
 	emotion = EMOTIONS[np.argmax(prediction)]
 
