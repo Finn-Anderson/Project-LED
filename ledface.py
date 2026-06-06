@@ -45,7 +45,8 @@ def CloseCamera():
 	if CAM == None:
 		return
 
-	CAM.release()
+	if CAM.isOpened():
+		CAM.release()
 	CAM = None
 
 def GetClosestEmotionLED(Default: str):
