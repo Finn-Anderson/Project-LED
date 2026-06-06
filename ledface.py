@@ -7,9 +7,6 @@ import numpy as np
 from keras import models
 from keras.src.utils import backend_utils
 
-dynamic = backend_utils.DynamicBackend()
-dynamic.set_backend("jax")
-
 if getattr(sys, "frozen", False):
 	path = os.path.join(sys._MEIPASS, "model/cnn_model.keras")
 else:
@@ -36,6 +33,8 @@ def CropFrame(frame):
 CAM = None
 def RegisterCamera():
 	global CAM
+	if CAM != None:
+		return
 
 	CAM = cv2.VideoCapture(0)
 
@@ -48,6 +47,8 @@ def CloseCamera():
 
 def GetClosestEmotionLED(Default: str):
 	global CAM
+	if CAM == None:
+		return
 
 	ret, frame = CAM.read()
 	if ret == False:

@@ -9,73 +9,7 @@ on:
 
 jobs:
   build:
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        binary:
-          - app
-          - pi
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-
-    runs-on: ${{ matrix.os }}
-    name: ${{ matrix.os }} - ${{ matrix.binary }}
-    env:
-      BINARY: ${{ matrix.binary }}
-      MATRIXOS: ${{ matrix.os }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: 3.14.x
-
-    - name: Set up Pillow
-      run: |
-        pip install --upgrade pip
-        pip install Pillow
-
-    - name: Install Python dependencies
-      run: |
-        pip install -r requirements.txt
-
-    - name: Install PyInstaller
-      run: |
-        pip install pyinstaller
-
-    - name: Set up Data Paths
-      shell: bash
-      run: |
-        if [[ "$RUNNER_OS" = "Windows" ]]; then
-          echo "image_path=images/icon.png;images" >> $GITHUB_ENV
-          echo "model_path=model/cnn_model.keras;model" >> $GITHUB_ENV
-        else
-          echo "image_path=images/icon.png:images" >> $GITHUB_ENV
-          echo "model_path=model/cnn_model.keras:model" >> $GITHUB_ENV
-        fi
-
-    - name: Build executable
-      shell: bash
-      run: |
-        pyinstaller --clean -y -n "led-$BINARY" --noconsole --onefile --add-data="$image_path" --add-data="$model_path" --icon="images/icon.ico" --hidden-import "os" led-$BINARY.py
-
-    - name: Tar files
-      shell: bash
-      run: |
-        tar -cvf led-$MATRIXOS-$BINARY.tar dist/
-
-    - name: Upload ready files
-      uses: actions/upload-artifact@v7
-      with:
-        name: project-led-${{ matrix.os }}-${{ matrix.binary }}
-        path: led-${{ matrix.os }}-${{ matrix.binary }}.tar
-        archive: false
+    uses: ./.github/workflows/build.yml
 
   release:
     needs: build
