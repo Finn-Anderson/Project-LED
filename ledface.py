@@ -12,15 +12,17 @@ if getattr(sys, "frozen", False):
 else:
 	path = "model/cnn_model.keras"
 
-model = models.load_model(path)
-emotions = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
-face_classifier = cv2.CascadeClassifier(
+MODEL = models.load_model(path)
+EMOTIONS = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
+FACE_CLASSIFIER = cv2.CascadeClassifier(
 	cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 
 def CropFrame(frame):
+	global FACE_CLASSIFIER
+
 	gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-	faces = face_classifier.detectMultiScale(gray_image, 1.1, 5, minSize=(40, 40))
+	faces = FACE_CLASSIFIER.detectMultiScale(gray_image, 1.1, 5, minSize=(40, 40))
 
 	if (len(faces) == 0):
 		return []
@@ -39,19 +41,24 @@ def RegisterCamera():
 	CAM = cv2.VideoCapture(0)
 
 def CloseCamera():
-	if CAM == None:
-		return
-
-	CAM.release()
-	cv2.destroyAllWindows()
-
-def GetClosestEmotionLED(Default: str):
 	global CAM
 	if CAM == None:
 		return
 
+	if CAM.isOpened():
+		CAM.release()
+	CAM = None
+
+def GetClosestEmotionLED(Default: str):
+	global CAM
+	global MODEL
+	global EMOTIONS
+
+	if CAM == None or not CAM.isOpened():
+		return Default
+
 	ret, frame = CAM.read()
-	if ret == False:
+	if ret == False or len(frame) == 0:
 		return Default
 	
 	cropped_frame = CropFrame(frame)
@@ -63,9 +70,9 @@ def GetClosestEmotionLED(Default: str):
 	normalized = resized / 255
 	reshaped = np.reshape(normalized,(-1, 48, 48, 1))
 	reshaped = np.vstack([reshaped])
-	prediction = model.predict(reshaped)
+	prediction = MODEL.predict(reshaped, verbose=0)
 
-	emotion = emotions[np.argmax(prediction)]
+	emotion = EMOTIONS[np.argmax(prediction)]
 
 	if emotion == "Angry":
 		return "255 39 32"
