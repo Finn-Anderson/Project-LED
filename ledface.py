@@ -39,6 +39,7 @@ def RegisterCamera():
 	CAM = cv2.VideoCapture(0)
 
 def CloseCamera():
+	global CAM
 	if CAM == None:
 		return
 
@@ -57,6 +58,8 @@ def GetClosestEmotionLED(Default: str):
 	cropped_frame = CropFrame(frame)
 
 	if len(cropped_frame) == 0:
+		return Default
+	else:
 		return Default
 	
 	resized = cv2.resize(cropped_frame,(48, 48))
